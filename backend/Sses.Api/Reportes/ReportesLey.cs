@@ -16,7 +16,7 @@ public sealed record GenerarReporte(Guid? PlantillaId, int? Vigencia, string? Pe
 /// <summary>HU_008 / CU_009 / RQ_014: reportes de ley en PDF con huella SHA-256, código de verificación público y aislamiento por organización (RLS).</summary>
 public static class ReportesLey
 {
-    sealed record Contenido(string[] Encabezados, string[][] Filas);
+    internal sealed record Contenido(string[] Encabezados, string[][] Filas);
 
     const string SqlBase = @"
         select r.nombre region, c.mes, count(distinct c.tutor_id)::int tutores, sum(c.programadas)::int programadas,
@@ -25,7 +25,7 @@ public static class ReportesLey
         where c.mes like @vig || '-%' and (@periodo::text is null or c.mes = @periodo)
         group by r.nombre, c.mes order by c.mes, r.nombre";
 
-    static string Pct(int a, int b) => (b == 0 ? 0m : Math.Round(100m * a / b, 1)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',') + " %";
+    internal static string Pct(int a, int b) => (b == 0 ? 0m : Math.Round(100m * a / b, 1)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',') + " %";
 
     /// <summary>Cada código de plantilla está mapeado a una consulta fija y parametrizada (no se ejecuta SQL guardado en la BD).</summary>
     static async Task<Contenido?> Consultar(string codigo, NpgsqlConnection cn, NpgsqlTransaction tx, int vigencia, string? periodo)
@@ -42,20 +42,21 @@ public static class ReportesLey
         };
     }
 
-    static string Sha256(byte[] b) => Convert.ToHexString(SHA256.HashData(b)).ToLowerInvariant();
+    internal static string Sha256(byte[] b) => Convert.ToHexString(SHA256.HashData(b)).ToLowerInvariant();
 
     /// <summary>Huella del contenido: SHA-256 de su serialización canónica. Es la que se imprime en el pie del PDF (un archivo no puede contener su propia huella).</summary>
     static string HuellaContenido(string plantilla, string organizacion, int vigencia, string? periodo, Contenido c) =>
         Sha256(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { plantilla, organizacion, vigencia, periodo, c.Encabezados, c.Filas })));
 
-    static string NuevoCodigo()
+    internal static string NuevoCodigo()
     {
         const string alfabeto = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // sin caracteres ambiguos
         var s = new char[12]; for (var i = 0; i < s.Length; i++) s[i] = alfabeto[RandomNumberGenerator.GetInt32(alfabeto.Length)];
         var t = new string(s); return $"{t[..4]}-{t[4..8]}-{t[8..]}";
     }
 
-    static byte[] GenerarPdf(string titulo, string organizacion, int vigencia, string? periodo, DateTime emitida, string codigo, string huella, string urlVerificacion, Contenido c)
+    /// <summary>PDF/A-2b común a los reportes de ley y al informe mensual del Tutor Líder (D41).</summary>
+    internal static byte[] GenerarPdf(string titulo, string subtitulo, string codigo, string huella, string urlVerificacion, Contenido c)
     {
         QuestPDF.Settings.License = LicenseType.Community;
         return Document.Create(d => d.Page(p =>
@@ -65,7 +66,7 @@ public static class ReportesLey
             {
                 h.Item().Text("Sinapsis Andina · SSES").FontSize(9).FontColor(Colors.Grey.Darken1);
                 h.Item().Text(titulo).FontSize(18).Bold().FontColor("#0b3a63");
-                h.Item().Text($"Entidad solicitante: {organizacion} · Vigencia {vigencia}{(periodo == null ? "" : " · Periodo " + periodo)} · Emitido {emitida:yyyy-MM-dd HH:mm} UTC").FontSize(9);
+                h.Item().Text(subtitulo).FontSize(9);
                 h.Item().PaddingBottom(8);
             });
             p.Content().Table(t =>
@@ -81,6 +82,15 @@ public static class ReportesLey
                 f.Item().AlignRight().Text(x => { x.Span("Página ").FontSize(8); x.CurrentPageNumber().FontSize(8); x.Span(" de ").FontSize(8); x.TotalPages().FontSize(8); });
             });
         })).WithSettings(new DocumentSettings { PDFA_Conformance = PDFA_Conformance.PDFA_2B }).GeneratePdf();
+    }
+
+    /// <summary>URL pública de verificación: configurada o, por defecto, el origen desde el que se pidió el reporte (D38: local, túnel o nube).</summary>
+    internal static string UrlVerificacion(IConfiguration cfg, HttpRequest req)
+    {
+        if (cfg["Reportes:UrlVerificacion"] is { Length: > 0 } fija) return fija;
+        var proto = req.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? req.Scheme;
+        var host = req.Headers["X-Forwarded-Host"].FirstOrDefault() ?? req.Host.Value;
+        return $"{proto}://{host}/verificar";
     }
 
     static async Task<long?> OrganizacionDe(NpgsqlConnection cn, long participanteId) =>
@@ -109,7 +119,7 @@ public static class ReportesLey
         });
 
         // RQ_014: genera el reporte (vista previa en JSON + PDF guardado), calcula huellas y registra la emisión
-        g.MapPost("/", async (GenerarReporte dto, NpgsqlDataSource ds, IUsuarioActual ua, IBitacora bit, IConfiguration cfg) =>
+        g.MapPost("/", async (GenerarReporte dto, HttpRequest req, NpgsqlDataSource ds, IUsuarioActual ua, IBitacora bit, IConfiguration cfg) =>
         {
             var u = await ua.ObtenerAsync(); if (u == null) return Problemas.De(403, "USUARIO_NO_HABILITADO", "Tu usuario no está habilitado.");
             var e = new Dictionary<string, string[]>();
@@ -138,8 +148,8 @@ public static class ReportesLey
             if (c == null) return Problemas.De(422, "PLANTILLA_SIN_CONSULTA", "El reporte aún no está parametrizado.");
             var huella = HuellaContenido(pl.Value.nombre, nombreOrg!, dto.Vigencia!.Value, periodo, c);
             var codigo = NuevoCodigo(); var emitida = DateTime.UtcNow;
-            var url = cfg["Reportes:UrlVerificacion"] ?? "http://localhost:5174/verificar";
-            var pdf = GenerarPdf(pl.Value.nombre, nombreOrg!, dto.Vigencia!.Value, periodo, emitida, codigo, huella, url, c);
+            var url = UrlVerificacion(cfg, req);
+            var pdf = GenerarPdf(pl.Value.nombre, $"Entidad solicitante: {nombreOrg} · Vigencia {dto.Vigencia}{(periodo == null ? "" : " · Periodo " + periodo)} · Emitido {emitida:yyyy-MM-dd HH:mm} UTC", codigo, huella, url, c);
             var huellaArchivo = Sha256(pdf);
             await FijarOrganizacion(cn, tx, org.Value);
             var pub = Guid.CreateVersion7();

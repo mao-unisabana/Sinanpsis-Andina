@@ -25,14 +25,12 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: keycloak_dev
-      # URL pública del emisor OIDC (local por defecto; en el despliegue, la URL HTTPS pública de Keycloak)
-      KC_HOSTNAME: ${PUBLIC_KC_URL:-http://localhost:${PORT_KEYCLOAK:-8180}}
+      # D38: sin hostname fijo; el emisor sale de la petición (la web lo publica en /realms del mismo origen)
+      KC_HOSTNAME_STRICT: "false"
       KC_PROXY_HEADERS: xforwarded
-      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
       DEMO_PASSWORD: ${DEMO_PASSWORD}
-      SSES_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:${PORT_WEB:-5174}}
     ports: ["${PORT_KEYCLOAK:-8180}:8080"]
     volumes:
       - ./infra/keycloak/realm-sses.json:/opt/keycloak/data/import/realm-sses.json:ro
@@ -51,7 +49,6 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Sses: Host=postgres;Port=5432;Database=sses;Username=sses_api;Password=sses_api_dev
-      Keycloak__Authority: ${PUBLIC_KC_URL:-http://localhost:${PORT_KEYCLOAK:-8180}}/realms/sses
       Keycloak__MetadataAddress: http://keycloak:8080/realms/sses/.well-known/openid-configuration
       SSES__CLAVE_AES: ${SSES__CLAVE_AES}
       SSES__CLAVE_HMAC: ${SSES__CLAVE_HMAC}
@@ -72,11 +69,10 @@ services:
   web:
     build:
       context: ./frontend
-      args:
-        VITE_OIDC_AUTHORITY: ${PUBLIC_KC_URL:-http://localhost:${PORT_KEYCLOAK:-8180}}/realms/sses
     ports: ["${PORT_WEB:-5174}:80"]
     depends_on:
       api: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
 
 volumes:
   pgdata:

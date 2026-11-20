@@ -94,7 +94,7 @@ export async function adjuntarFotoPesada(page: Page, ancho = 3000, alto = 2000):
 
 /** Deja la base en el estado del guion. En Windows, Node usa cmd.exe y no ejecuta .sh: se invoca Git Bash. */
 export function resetDemo() {
-  const gitBash = 'C:\Program Files\Git\bin\bash.exe'
+  const gitBash = 'C:/Program Files/Git/bin/bash.exe'
   const cmd = process.platform === 'win32' ? `"${existsSync(gitBash) ? gitBash : 'bash'}" scripts/reset-demo.sh` : './scripts/reset-demo.sh'
   execSync(cmd, { cwd: '../..', stdio: 'pipe' })
 }

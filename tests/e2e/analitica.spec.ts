@@ -5,7 +5,7 @@ test('F9 · Analista del MEN: tablero por región, clasificación, detalle seman
   await login(page, 'analista.men@sinapsis.co')
   await expect(page.getByTestId('encabezado-rol')).toHaveText('Analista del MEN')
   const menu = page.getByRole('navigation', { name: 'Menú principal' })
-  await expect(menu.getByRole('link')).toHaveCount(1)
+  await expect(menu.getByRole('link').filter({ hasNotText: 'Inicio' })).toHaveCount(1) // 'Inicio' es común a todos los roles
   await menu.getByRole('link', { name: 'Analítica' }).click()
   await page.getByRole('link', { name: 'Desempeño de tutores' }).click()
   await expect(page.getByRole('heading', { name: 'Desempeño de tutores' })).toBeVisible()

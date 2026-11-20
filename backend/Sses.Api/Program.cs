@@ -69,6 +69,7 @@ app.MapEvidencias();
 app.MapSincronizacion();
 app.MapMiAcompanamiento();
 app.MapAnalitica(); app.MapReportesLey();
+app.MapDesempeno(); app.MapInformeMensual(); // D40, D41
 app.MapAuditoria();
 app.MapIncidentes();
 app.Run();

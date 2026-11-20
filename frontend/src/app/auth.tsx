@@ -10,6 +10,8 @@ type Ctx = {
   estado: Estado
   perfil: Perfil | null
   sinSesionLocal: boolean // perfil restaurado sin red/sin token (modo sin conexión)
+  perfilLocal: Perfil | null // perfil guardado en este dispositivo (permite entrar sin conexión, D39)
+  continuarSinConexion: () => void
   ingresar: () => void
   salir: () => void
   completarLogin: () => Promise<void>
@@ -21,6 +23,13 @@ const PERFIL_KEY = 'sses.perfil'
 function leerPerfilLocal(): Perfil | null {
   try { const s = localStorage.getItem(PERFIL_KEY); return s ? (JSON.parse(s) as Perfil) : null } catch { return null }
 }
+/** D39: ¿responde el servidor? `navigator.onLine` no basta (wifi sin internet, túnel caído). */
+async function servidorAlcanzable(): Promise<boolean> {
+  if (!navigator.onLine) return false
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 3000)
+  try { return (await fetch('/health/live', { cache: 'no-store', signal: ctrl.signal })).ok } catch { return false } finally { clearTimeout(t) }
+}
+
 function guardarPerfilLocal(p: Perfil | null) {
   try { if (p) localStorage.setItem(PERFIL_KEY, JSON.stringify(p)); else localStorage.removeItem(PERFIL_KEY) } catch { /* sin almacenamiento */ }
 }
@@ -48,9 +57,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (loc && vivo) { setPerfil(loc); setSinSesionLocal(true); setEstado('autenticado'); return }
           }
         }
-      } else if (!navigator.onLine) {
+      } else {
+        // D39: sin token (la PWA se cerró y se reabrió). Con perfil guardado en este dispositivo:
+        // sin servidor → modo sin conexión; con servidor → se intenta el SSO silencioso (sesión de Keycloak vigente).
         const loc = leerPerfilLocal()
-        if (loc && vivo) { setPerfil(loc); setSinSesionLocal(true); setEstado('autenticado'); return }
+        if (loc) {
+          if (!(await servidorAlcanzable())) { if (vivo) { setPerfil(loc); setSinSesionLocal(true); setEstado('autenticado') } return }
+          try {
+            const r = await userManager.signinSilent()
+            if (r) { const p = await api<Perfil>('/me'); if (!vivo) return; guardarPerfilLocal(p); setPerfil(p); setEstado('autenticado'); return }
+          } catch { /* sin sesión de Keycloak: se muestra el inicio para ingresar */ }
+        }
       }
       if (vivo) setEstado('anonimo')
     })()
@@ -63,19 +80,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const h = async () => {
       const u = await userManager.getUser()
       if (u && !u.expired) { setSinSesionLocal(false); return }
-      try { const r = await userManager.signinSilent(); if (r) setSinSesionLocal(false) }
-      catch { /* se pedirá ingresar de nuevo desde el aviso; la cola local se conserva */ }
+      try {
+        const r = await userManager.signinSilent()
+        if (r) { setSinSesionLocal(false); void import('../offline/sync').then((m) => m.sincronizarAhora()) } // envía lo capturado sin señal
+      } catch { /* se pedirá ingresar de nuevo desde el aviso; la cola local se conserva */ }
     }
     window.addEventListener('online', h)
-    return () => window.removeEventListener('online', h)
+    // Si se entró sin conexión sin que el navegador lo notara (wifi sin internet, túnel caído), se reintenta cada 20 s
+    const t = setInterval(() => { void servidorAlcanzable().then((ok) => { if (ok) void h() }) }, 20_000)
+    return () => { window.removeEventListener('online', h); clearInterval(t) }
   }, [sinSesionLocal])
 
-  const ingresar = useCallback(() => { void userManager.signinRedirect() }, [])
+  const ingresar = useCallback(() => {
+    setAviso(null)
+    userManager.signinRedirect().catch(() => setAviso(navigator.onLine
+      ? 'No pudimos conectar con el servidor de ingreso. Revisa tu conexión e inténtalo de nuevo.'
+      : 'Sin conexión: necesitas señal para ingresar.'))
+  }, [])
+  const continuarSinConexion = useCallback(() => {
+    const loc = leerPerfilLocal(); if (!loc) return
+    setPerfil(loc); setSinSesionLocal(true); setEstado('autenticado')
+  }, [])
   const salir = useCallback(() => {
     void (async () => {
       const { contarPendientes } = await import('../offline/outbox')
       const n = await contarPendientes().catch(() => 0)
-      if (n > 0 && !window.confirm(`Tienes ${n} registro(s) pendientes de sincronizar en este dispositivo. Si sales ahora se perderán. ¿Salir de todos modos?`)) return
+      if (n > 0 && !window.confirm(`Tienes ${n} registro(s) pendientes de sincronizar en este dispositivo. Si sales ahora se perderán y ya no podrás abrir el SSES sin conexión en este dispositivo hasta volver a ingresar con señal. ¿Salir de todos modos?`)) return
       guardarPerfilLocal(null)
       await import('../offline/crypto').then((m) => m.olvidarClave()).catch(() => undefined)
       void userManager.signoutRedirect()
@@ -87,7 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     guardarPerfilLocal(p); setPerfil(p); setSinSesionLocal(false); setEstado('autenticado')
   }, [])
 
-  const v = useMemo(() => ({ estado, perfil, sinSesionLocal, ingresar, salir, completarLogin, aviso }), [estado, perfil, sinSesionLocal, ingresar, salir, completarLogin, aviso])
+  const perfilLocal = estado === 'anonimo' ? leerPerfilLocal() : null
+  const v = useMemo(() => ({ estado, perfil, sinSesionLocal, perfilLocal, continuarSinConexion, ingresar, salir, completarLogin, aviso }),
+    [estado, perfil, sinSesionLocal, perfilLocal, continuarSinConexion, ingresar, salir, completarLogin, aviso])
   return <AuthCtx.Provider value={v}>{children}</AuthCtx.Provider>
 }
 

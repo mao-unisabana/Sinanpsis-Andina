@@ -3,7 +3,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-ARG VITE_OIDC_AUTHORITY=http://localhost:8180/realms/sses
+# Vacío = el emisor OIDC es <origen>/realms/sses (D38)
+ARG VITE_OIDC_AUTHORITY=
 ARG VITE_API_URL=/api/v1
 ARG VITE_DEMO=1
 ENV VITE_OIDC_AUTHORITY=$VITE_OIDC_AUTHORITY VITE_API_URL=$VITE_API_URL VITE_DEMO=$VITE_DEMO

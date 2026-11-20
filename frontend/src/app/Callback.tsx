@@ -1,8 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useAuth } from './auth'
+import { userManager } from './auth-manager'
 
 export default function Callback() {
+  // Dentro del iframe de renovación silenciosa solo se completa la renovación (no se registra un LOGIN nuevo)
+  if (window.parent !== window) return <RenovacionSilenciosa />
+  return <CallbackPrincipal />
+}
+
+function RenovacionSilenciosa() {
+  useEffect(() => { void userManager.signinSilentCallback().catch(() => undefined) }, [])
+  return null
+}
+
+function CallbackPrincipal() {
   const { completarLogin } = useAuth()
   const nav = useNavigate()
   const [error, setError] = useState<string | null>(null)

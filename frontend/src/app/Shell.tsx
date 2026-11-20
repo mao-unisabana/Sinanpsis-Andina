@@ -41,7 +41,7 @@ export default function Shell() {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-20 h-16 bg-white/85 backdrop-blur border-b border-slate-200 px-4 md:px-6 flex items-center gap-2 sm:gap-3">
+        <header className="sticky top-0 z-20 min-h-16 bg-white/85 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-2 lg:py-0 flex flex-wrap items-center gap-x-2 gap-y-1 sm:gap-x-3">
           <Link to="/inicio" className="md:hidden flex items-center gap-2 mr-auto">
             <img src="/icon.svg" alt="" className="w-8 h-8 rounded-lg" /><span className="font-bold text-andino-900">SSES</span>
           </Link>
@@ -51,7 +51,7 @@ export default function Shell() {
             className={`inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-2.5 py-1 ring-1 ring-inset ${online ? 'bg-cumple-50 text-cumple ring-cumple/20' : 'bg-slate-100 text-slate-700 ring-slate-300'}`}>
             <span className={`w-2 h-2 rounded-full ${online ? 'bg-cumple animate-pulse' : 'bg-slate-500'}`} /><span className={online ? 'hidden sm:inline' : ''}>{online ? 'En línea' : 'Sin conexión'}</span>
           </span>
-          {esTutor && (
+          {(esTutor || esDocente) && (
             <span data-testid="indicador-pendientes" title="Registros guardados en este dispositivo que faltan por sincronizar"
               className={`inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-2.5 py-1 ring-1 ring-inset ${pendientes > 0 ? 'bg-amber-50 text-amber-800 ring-amber-300' : 'bg-white text-slate-500 ring-slate-200'}`}>
               <IconoNube width={14} height={14} />{pendientes}<span className="hidden sm:inline"> pendientes</span>
@@ -63,7 +63,13 @@ export default function Shell() {
             </span>
           )}
           <BotonAyuda />
-          <span className="hidden sm:block w-px h-8 bg-slate-200" />
+          <span className="hidden lg:block w-px h-8 bg-slate-200" />
+          {/* HU_002: nombre, rol y último ingreso siempre visibles (en el celular, como segunda línea del encabezado) */}
+          <div className="order-last basis-full lg:order-none lg:basis-auto min-w-0 text-xs text-slate-500 leading-tight lg:text-right">
+            <span className="font-semibold text-slate-900 text-sm lg:block" data-testid="encabezado-nombre">{perfil.nombre}</span>
+            <span className="lg:hidden"> · </span>
+            <span data-testid="encabezado-rol">{perfil.rolEtiqueta}</span> · Último ingreso: <span data-testid="encabezado-ultimo">{fmt(perfil.ultimoIngreso)}</span>
+          </div>
           <MenuUsuario nombre={perfil.nombre} rol={perfil.rolEtiqueta} ultimo={fmt(perfil.ultimoIngreso)} salir={salir} />
         </header>
 
@@ -113,7 +119,7 @@ function ItemMenu({ m, movil }: { m: Item; movil?: boolean }) {
   )
 }
 
-/** Avatar con nombre, rol y último ingreso (HU_002); despliega 'Bitácora de actividad' y 'Salir'. */
+/** Avatar que despliega 'Bitácora de actividad' y 'Salir' (el nombre, rol y último ingreso van siempre visibles en el encabezado). */
 function MenuUsuario({ nombre, rol, ultimo, salir }: { nombre: string; rol: string; ultimo: string; salir: () => void }) {
   const [abierto, setAbierto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -129,10 +135,6 @@ function MenuUsuario({ nombre, rol, ultimo, salir }: { nombre: string; rol: stri
       <button onClick={() => setAbierto((v) => !v)} aria-haspopup="menu" aria-expanded={abierto} aria-label="Menú de usuario"
         className="flex items-center gap-2.5 rounded-xl pl-1 pr-2 py-1 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-andino-600/50">
         <span className="grid place-items-center w-9 h-9 rounded-full bg-gradient-to-br from-andino-700 to-andino-950 text-white text-sm font-semibold shadow-sm">{iniciales(nombre)}</span>
-        <span className="hidden lg:block text-left leading-tight">
-          <span className="block text-sm font-semibold text-slate-900" data-testid="encabezado-nombre">{nombre}</span>
-          <span className="block text-xs text-slate-500"><span data-testid="encabezado-rol">{rol}</span> · Último ingreso: <span data-testid="encabezado-ultimo">{ultimo}</span></span>
-        </span>
         <IconoChevron width={16} height={16} className={`text-slate-400 transition-transform ${abierto ? 'rotate-180' : ''}`} />
       </button>
       {abierto && (

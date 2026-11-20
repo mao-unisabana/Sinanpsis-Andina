@@ -16,7 +16,7 @@ dotnet run --project tools/Sses.Seed -c Release -- --estudiantes 500000
 ./scripts/reset-demo.sh                                        # estado inicial del guion de demo
 ```
 
-Para publicarlo con un enlace accesible, definir en `.env` `PUBLIC_WEB_URL` y `PUBLIC_KC_URL` (HTTPS) y reconstruir.
+Para publicarlo con un enlace accesible basta exponer el puerto web por HTTPS, por ejemplo `cloudflared tunnel --url http://localhost:5174`: el login (Keycloak) se sirve en el mismo origen, en `/realms`.
 
 Usuarios demo (`gestor.demo@sinapsis.co`, `tutor.lider@sinapsis.co`), contraseña y secreto TOTP en `.env.example`.
 Contexto, trazabilidad Necesidad → HU → CU → RQ y decisiones en [`context/`](context/).

@@ -92,6 +92,19 @@ Tipos de documento: `RC` (registro civil), `TI` (tarjeta de identidad), `CC`, `C
 3. **'Guardar'** → cifra y guarda en IndexedDB con clave de idempotencia; estado **'Pendiente'**.
 4. Al recuperar la señal, la sincronización envía los pendientes en orden → **'Sincronizado'**. Si la versión del hito cambió en el servidor: **'En conflicto'**, se muestran ambas versiones y el tutor decide.
 
+**Reabrir la app sin señal (D39)**
+- Si el dispositivo ya ingresó antes y no se pulsó 'Salir', la app abre sola en modo sin conexión con el último plan guardado; al volver la señal renueva la sesión en silencio y sincroniza.
+- Si el inicio público se abre sin señal: con ingreso previo ofrece **'Continuar sin conexión como {nombre}'**; sin ingreso previo explica **'Necesitas señal para el primer ingreso en este dispositivo'** y deshabilita 'Ingresar'.
+
+## D40 / D41 — "Mi desempeño" del Tutor Líder e informe mensual
+
+Pestaña de 'Acompañamientos' (**'Plan mensual' | 'Mi desempeño'**; HU_002 fija los ítems del menú):
+1. Indicadores: cumplimiento del mes actual ('Sin plan' si aún no programa), registros hechos **sin señal** en 6 meses, % **confirmado por los docentes**, % **registro a tiempo** (≤ 2 días tras la semana, D24 con fecha de captura).
+2. Gráfico de los últimos 6 meses: semanas registradas en línea / sin conexión (barras apiladas) y cumplimiento (línea).
+3. **'Semanas por registrar'** (vencidas sin seguimiento) con acceso a 'Registrar seguimiento', y tabla 'Detalle por mes'.
+4. **'Descargar reporte del mes'**: PDF del acompañamiento del mes elegido con código de verificación y huella SHA-256; el código se valida en `/verificar` igual que un reporte de ley.
+- Sin señal muestra la última copia guardada; generar el informe requiere conexión.
+
 ---
 
 ## Estados
@@ -108,7 +121,7 @@ Tipos de documento: `RC` (registro civil), `TI` (tarjeta de identidad), `CC`, `C
 `'Guardar cambios'`, `'Bloqueada para edición'`, `'Asociar estudiantes'`, `'Buscar'`, `'Vincular'`,
 `'Estudiantes vinculados'`, `'Cargar listado'`, `'Acompañamientos'`, `'Plan mensual'`, `'Programar'`,
 `'Registrar seguimiento'`, `'Registrada'`, `'Programada'`, `'Sin conexión: tus registros se guardarán en este dispositivo'`,
-`'Pendiente'`, `'Sincronizado'`, `'En conflicto'`, `'Pilotaje'`, `'Ayuda'`, `'Enviar'`, `'Mis casos'`.
+`'Pendiente'`, `'Sincronizado'`, `'En conflicto'`, `'Pilotaje'`, `'Ayuda'`, `'Enviar'`, `'Mis casos'`, `'Mi desempeño'`, `'Descargar reporte del mes'`.
 
 ## Pantallas del MVP
 
@@ -117,4 +130,5 @@ Tipos de documento: `RC` (registro civil), `TI` (tarjeta de identidad), `CC`, `C
 3. Estrategias: listado (filtro por entidad y estado, paginación por llave de 50) → ficha (tabs 'Datos' / 'Estudiantes vinculados') → formulario crear/editar → modal/página 'Asociar estudiantes'.
 4. Acompañamientos → Plan mensual: selector de mes, docentes agrupados por estrategia, formulario de programación, calendario del mes con barra de cumplimiento.
 5. Registrar seguimiento: formulario móvil-first (checklist de asistencia, textareas, cámara/galería), estado de sincronización por registro.
+4b. Acompañamientos → Mi desempeño: indicadores, gráfico de 6 meses, semanas por registrar, detalle por mes y 'Descargar reporte del mes' (D40, D41).
 6. Panel de conflictos: comparación lado a lado ("En este dispositivo" vs "En el servidor"), botones "Conservar el mío" / "Conservar el del servidor".

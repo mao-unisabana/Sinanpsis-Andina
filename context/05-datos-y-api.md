@@ -140,6 +140,15 @@ Transacción de edición (RQ_007): `READ COMMITTED`, `SELECT ... FROM estrategia
 
 Detalle de reglas en `06-offline-sync.md`.
 
+### Desempeño e informe mensual del Tutor Líder (D40, D41)
+| Método | Ruta | Detalle |
+|---|---|---|
+| GET | `/tutores/me/desempeno?meses=6` | Solo `TUTOR_LIDER`. Por mes: programadas, registradas, confirmadas, observadas, `enLinea`/`sinConexion`, docentes atendidos, cumplimiento y regularidad; indicadores del periodo; `porRegistrar` (5 más recientes) y `totalPorRegistrar`. Bitácora `CONSULTAR_DESEMPENO` |
+| POST | `/tutores/me/informe-mensual` | `{mes}` → `200 {id, codigo, huella, mes, descarga}`; `422 MES_SIN_PLAN`. PDF/A-2b con el mismo generador de los reportes de ley; tabla `reportes.informe_mensual` (`05-informe-mensual.sql`, sin RLS, filtrada por participante). Bitácora `GENERAR_INFORME_MENSUAL` |
+| GET | `/tutores/me/informe-mensual/{id}/pdf` | Solo el tutor que lo emitió (404 para otros) |
+
+`reportes.verificar(codigo)` une emisiones de ley e informes mensuales: `GET /reportes-ley/verificar/{codigo}` valida ambos. La URL de verificación impresa en el PDF sale del origen de la petición (`X-Forwarded-Host/Proto` de nginx) salvo que se configure `Reportes:UrlVerificacion`.
+
 ### Mesa de ayuda (RQ_020, D31)
 | Método | Ruta | Detalle |
 |---|---|---|

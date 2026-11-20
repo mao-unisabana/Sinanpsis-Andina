@@ -30,7 +30,7 @@ test('F7 · sin conexión: abre desde caché, guarda Pendiente, sincroniza, no d
   await registrarSemana(page, 3, 'Semana 3 del DISPOSITIVO')
   await expect(page.getByTestId('indicador-pendientes')).toHaveText('3 pendientes')
   await expect(page.getByTestId('cumplimiento-porcentaje')).toHaveText('100 %') // optimista local
-  expect(sql('select count(*) from (select s.* from acompanamiento.seguimiento_semanal s join acompanamiento.hito_semanal h on h.id=s.hito_id join acompanamiento.plan p on p.id=h.plan_id where p.tutor_id=1) t')).toBe('0')
+  expect(sql(`select count(*) from (select s.* from acompanamiento.seguimiento_semanal s join acompanamiento.hito_semanal h on h.id=s.hito_id join acompanamiento.plan p on p.id=h.plan_id where p.tutor_id=1 and p.mes='${mesActual()}') t`)).toBe('0')
 
   // ---- mientras tanto, otro dispositivo registra las semanas 2 y 3 en línea ----
   const plan = await (await request.get(`${API}/tutores/me/plan?mes=${mesActual()}`, { headers: h })).json()
@@ -50,15 +50,15 @@ test('F7 · sin conexión: abre desde caché, guarda Pendiente, sincroniza, no d
   await expect(page.getByTestId('hito').nth(2).getByTestId('estado-registro')).toHaveText('En conflicto')
   await expect(page.getByTestId('indicador-pendientes')).toHaveText('0 pendientes')
   await expect(page.getByTestId('indicador-conflictos')).toHaveText('2 en conflicto')
-  expect(sql(`select count(*) from (select s.* from acompanamiento.seguimiento_semanal s join acompanamiento.hito_semanal h on h.id=s.hito_id join acompanamiento.plan p on p.id=h.plan_id where p.tutor_id=1) t where origen='SIN_CONEXION'`)).toBe('1') // una sola fila, sin duplicar
-  expect(sql('select count(*) from (select s.* from acompanamiento.seguimiento_semanal s join acompanamiento.hito_semanal h on h.id=s.hito_id join acompanamiento.plan p on p.id=h.plan_id where p.tutor_id=1) t')).toBe('3')
+  expect(sql(`select count(*) from (select s.* from acompanamiento.seguimiento_semanal s join acompanamiento.hito_semanal h on h.id=s.hito_id join acompanamiento.plan p on p.id=h.plan_id where p.tutor_id=1 and p.mes='${mesActual()}') t where origen='SIN_CONEXION'`)).toBe('1') // una sola fila, sin duplicar
+  expect(sql(`select count(*) from (select s.* from acompanamiento.seguimiento_semanal s join acompanamiento.hito_semanal h on h.id=s.hito_id join acompanamiento.plan p on p.id=h.plan_id where p.tutor_id=1 and p.mes='${mesActual()}') t`)).toBe('3')
 
   // ---- reenvío del mismo lote → DUPLICADO sin filas nuevas ----
   expect(cuerpos.length).toBeGreaterThan(0)
   const rep = await request.post(`${API}/sincronizacion/seguimientos`, { headers: { ...h, 'Content-Type': 'application/json' }, data: cuerpos[0] })
   const estados = (await rep.json()).resultados.map((r: { estado: string }) => r.estado)
   expect(estados).toEqual(['DUPLICADO', 'DUPLICADO', 'DUPLICADO'])
-  expect(sql('select count(*) from (select s.* from acompanamiento.seguimiento_semanal s join acompanamiento.hito_semanal h on h.id=s.hito_id join acompanamiento.plan p on p.id=h.plan_id where p.tutor_id=1) t')).toBe('3')
+  expect(sql(`select count(*) from (select s.* from acompanamiento.seguimiento_semanal s join acompanamiento.hito_semanal h on h.id=s.hito_id join acompanamiento.plan p on p.id=h.plan_id where p.tutor_id=1 and p.mes='${mesActual()}') t`)).toBe('3')
 
   // ---- conflicto semana 2: conservar el mío ----
   await page.getByTestId('hito').nth(1).getByRole('link', { name: 'Resolver conflicto' }).click()
@@ -78,7 +78,7 @@ test('F7 · sin conexión: abre desde caché, guarda Pendiente, sincroniza, no d
   await expect(page.getByTestId('indicador-conflictos')).toHaveCount(0)
 
   // ---- estado final en el servidor y bitácora ----
-  expect(sql('select count(*) from (select s.* from acompanamiento.seguimiento_semanal s join acompanamiento.hito_semanal h on h.id=s.hito_id join acompanamiento.plan p on p.id=h.plan_id where p.tutor_id=1) t')).toBe('3')
+  expect(sql(`select count(*) from (select s.* from acompanamiento.seguimiento_semanal s join acompanamiento.hito_semanal h on h.id=s.hito_id join acompanamiento.plan p on p.id=h.plan_id where p.tutor_id=1 and p.mes='${mesActual()}') t`)).toBe('3')
   expect(sql(`select actividades from acompanamiento.seguimiento_semanal s join acompanamiento.hito_semanal h on h.id=s.hito_id where h.numero_semana=2 and h.plan_id=(select max(id) from acompanamiento.plan)`)).toBe('Semana 2 del DISPOSITIVO')
   expect(sql(`select actividades from acompanamiento.seguimiento_semanal s join acompanamiento.hito_semanal h on h.id=s.hito_id where h.numero_semana=3 and h.plan_id=(select max(id) from acompanamiento.plan)`)).toBe('Semana 3 del SERVIDOR')
   expect(Number(sql(`select count(*) from auditoria.bitacora where accion='CONFLICTO_RESUELTO'`))).toBeGreaterThanOrEqual(2)

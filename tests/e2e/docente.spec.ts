@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test'
-import { login, programarPlanDemo, registrarSemana, sql } from './helpers'
-import { execSync } from 'node:child_process'
+import { login, programarPlanDemo, registrarSemana, sql, resetDemo, mesActual } from './helpers'
 
-test.beforeAll(() => { execSync('./scripts/reset-demo.sh', { cwd: '../..' }) })
+test.beforeAll(() => { resetDemo() })
 
 test('F9 · Tutor Docente confirma en línea, observa sin señal, sincroniza una sola vez y el Tutor Líder ve los estados', async ({ browser }) => {
   test.setTimeout(240_000)
@@ -42,13 +41,13 @@ test('F9 · Tutor Docente confirma en línea, observa sin señal, sincroniza una
   await expect(dc.getByTestId('aviso-pendiente')).toBeVisible()
   await expect(dc.getByTestId('semana-2').getByTestId('estado-semana')).toHaveText('Pendiente')
   await expect(dc.getByTestId('indicador-pendientes')).toHaveText('1 pendientes')
-  expect(sql('select count(*) from acompanamiento.confirmacion_docente where docente_id=1')).toBe('1')
+  expect(sql(`select count(*) from acompanamiento.confirmacion_docente c join acompanamiento.hito_semanal h on h.id=c.hito_id join acompanamiento.plan p on p.id=h.plan_id where p.mes='${mesActual()}' and c.docente_id=1`)).toBe('1')
   await ctx.setOffline(false)
   await expect(dc.getByTestId('semana-2').getByTestId('estado-semana')).toHaveText('Observada', { timeout: 30_000 })
   await expect(dc.getByTestId('indicador-pendientes')).toHaveText('0 pendientes')
-  expect(sql('select count(*) from acompanamiento.confirmacion_docente where docente_id=1')).toBe('2')
-  expect(sql(`select count(*) from acompanamiento.confirmacion_docente where origen='SIN_CONEXION' and docente_id=1`)).toBe('1')
-  expect(sql(`select string_agg(estado, ',' order by numero_semana) from acompanamiento.hito_semanal h join acompanamiento.plan p on p.id=h.plan_id where p.tutor_id=1`)).toBe('CONFIRMADO,OBSERVADO,PROGRAMADA')
+  expect(sql(`select count(*) from acompanamiento.confirmacion_docente c join acompanamiento.hito_semanal h on h.id=c.hito_id join acompanamiento.plan p on p.id=h.plan_id where p.mes='${mesActual()}' and c.docente_id=1`)).toBe('2')
+  expect(sql(`select count(*) from acompanamiento.confirmacion_docente c join acompanamiento.hito_semanal h on h.id=c.hito_id join acompanamiento.plan p on p.id=h.plan_id where p.mes='${mesActual()}' and c.origen='SIN_CONEXION' and c.docente_id=1`)).toBe('1')
+  expect(sql(`select string_agg(estado, ',' order by numero_semana) from acompanamiento.hito_semanal h join acompanamiento.plan p on p.id=h.plan_id where p.tutor_id=1 and p.mes='${mesActual()}'`)).toBe('CONFIRMADO,OBSERVADO,PROGRAMADA')
 
   // ---- el Tutor Líder ve la versión de quien recibe ----
   await tl.reload()

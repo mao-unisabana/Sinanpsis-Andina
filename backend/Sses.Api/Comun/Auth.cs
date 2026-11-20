@@ -24,9 +24,15 @@ public static class Auth
             o.MetadataAddress = cfg["Keycloak:MetadataAddress"]!;
             o.RequireHttpsMetadata = false;
             o.MapInboundClaims = false;
+            // D38: Keycloak se publica en el mismo origen que la web, así que el emisor cambia según la URL de acceso
+            // (localhost, túnel o nube). Se acepta cualquier emisor del realm `sses`; la firma (JWKS interno), la audiencia
+            // y la vigencia se siguen validando.
+            var sufijo = cfg["Keycloak:IssuerSufijo"] ?? "/realms/sses";
             o.TokenValidationParameters = new()
             {
-                ValidIssuer = cfg["Keycloak:Authority"], ValidAudience = cfg["Keycloak:Audience"],
+                IssuerValidator = (emisor, _, _) => Uri.TryCreate(emisor, UriKind.Absolute, out var u) && (u.Scheme == "https" || u.Scheme == "http") && u.AbsolutePath.TrimEnd('/') == sufijo
+                    ? emisor : throw new Microsoft.IdentityModel.Tokens.SecurityTokenInvalidIssuerException($"Emisor no admitido: {emisor}"),
+                ValidAudience = cfg["Keycloak:Audience"],
                 ValidateIssuer = true, ValidateAudience = true, ValidateLifetime = true, ClockSkew = TimeSpan.FromSeconds(30),
                 NameClaimType = "preferred_username", RoleClaimType = ClaimTypes.Role
             };

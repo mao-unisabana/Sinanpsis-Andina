@@ -28,3 +28,8 @@ export const rangoSemana = (i: string, e: string) => {
   return a.getMonth() === b.getMonth() ? `${a.getDate()} – ${b.getDate()} ${mesB}` : `${a.getDate()} ${mesA} – ${b.getDate()} ${mesB}`
 }
 export const esRegistrada = (e: Hito['estado']) => e !== 'PROGRAMADA'
+
+// D40: serie de "Mi desempeño" (aquí y no en el gráfico, para no arrastrar ECharts al paquete de la pantalla)
+export type MesDesempeno = { mes: string; programadas: number; registradas: number; enLinea: number; sinConexion: number; cumplimiento: number }
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+export const etiquetaMes = (m: string) => `${MESES[Number(m.slice(5, 7)) - 1]} ${m.slice(2, 4)}`

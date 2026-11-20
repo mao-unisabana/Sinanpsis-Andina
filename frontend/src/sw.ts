@@ -6,8 +6,8 @@ declare const self: ServiceWorkerGlobalScope
 
 cleanupOutdatedCaches()
 precacheAndRoute(self.__WB_MANIFEST)
-// App shell offline: toda navegación cae a index.html (excepto rutas de auth/api)
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//, /^\/health/] }))
+// App shell offline: toda navegación cae a index.html, excepto API y el login de Keycloak en el mismo origen (D38)
+registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//, /^\/health/, /^\/realms\//, /^\/resources\//] }))
 
 self.addEventListener('message', (e) => {
   if (e.data?.type === 'SKIP_WAITING') void self.skipWaiting()

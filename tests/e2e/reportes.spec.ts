@@ -7,7 +7,7 @@ test('F9 · Ente de Control: genera el reporte, descarga el PDF, lo verifica sin
   await login(page, 'contraloria@sinapsis.co')
   await expect(page.getByTestId('encabezado-rol')).toHaveText('Ente de Control')
   const menu = page.getByRole('navigation', { name: 'Menú principal' })
-  await expect(menu.getByRole('link')).toHaveCount(1)
+  await expect(menu.getByRole('link').filter({ hasNotText: 'Inicio' })).toHaveCount(1) // 'Inicio' es común a todos los roles
   await menu.getByRole('link', { name: 'Reportes de Ley' }).click()
   await expect(page.getByRole('heading', { name: 'Reportes de Ley' })).toBeVisible()
 

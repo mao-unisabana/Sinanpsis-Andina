@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Pestanas from './Pestanas'
 import { Link, useLocation, useSearchParams } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, apiRaw, ApiError } from '../../app/api'
@@ -41,6 +42,7 @@ export default function PlanMensual() {
   const registrada = st?.registrada
   return (
     <div className="max-w-3xl mx-auto md:mx-0">
+      <Pestanas />
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div><h1 className="text-2xl font-bold text-andino-900">Plan mensual</h1><p className="text-sm text-slate-500">Acompañamientos del mes y su seguimiento semanal</p></div>
         <label className="text-sm">

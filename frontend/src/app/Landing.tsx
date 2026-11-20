@@ -1,4 +1,5 @@
 import { useAuth } from './auth'
+import { useOnline } from './useOnline'
 import { IconoBitacora, IconoCandado, IconoFlecha, IconoSinSenal } from '../ui/iconos'
 
 const PILARES = [
@@ -8,7 +9,8 @@ const PILARES = [
 ]
 
 export default function Landing() {
-  const { ingresar, aviso } = useAuth()
+  const { ingresar, aviso, perfilLocal, continuarSinConexion } = useAuth()
+  const online = useOnline()
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-andino-950 via-andino-900 to-andino-700 text-white">
       <svg aria-hidden="true" viewBox="0 0 800 400" className="absolute -right-32 -bottom-24 w-[900px] opacity-[0.06]">
@@ -29,10 +31,27 @@ export default function Landing() {
             <p className="mt-3 text-lg md:text-xl text-andino-50/90 max-w-lg">Sistema de Seguimiento de Actividades Extracurriculares</p>
             <p className="mt-4 text-sm text-andino-100/80 max-w-lg">Estrategias estudiantiles y acompañamiento pedagógico de los tutores, en un solo sistema y desde cualquier región del país.</p>
             {aviso && <p role="alert" className="mt-6 rounded-lg bg-red-100 text-red-800 px-4 py-2 text-sm max-w-md">{aviso}</p>}
-            <button onClick={ingresar}
-              className="group mt-8 inline-flex items-center gap-2 rounded-xl bg-cumple px-8 py-3.5 text-lg font-semibold shadow-lg shadow-black/20 hover:brightness-110 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40 transition">
-              Ingresar <IconoFlecha className="transition-transform group-hover:translate-x-1" />
-            </button>
+            {!online && (
+              <div role="status" data-testid="landing-sin-conexion" className="mt-6 max-w-md rounded-xl bg-amber-50 text-amber-900 px-4 py-3 text-sm flex gap-3">
+                <IconoSinSenal width={20} height={20} className="shrink-0 mt-0.5" />
+                <span>{perfilLocal
+                  ? 'Sin conexión. Puedes seguir trabajando con lo guardado en este dispositivo; tus registros se enviarán cuando vuelva la señal.'
+                  : 'Sin conexión. Necesitas señal para el primer ingreso en este dispositivo; después podrás trabajar sin conexión.'}</span>
+              </div>
+            )}
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              {!online && perfilLocal ? (
+                <button onClick={continuarSinConexion} data-testid="continuar-sin-conexion"
+                  className="group inline-flex items-center gap-2 rounded-xl bg-cumple px-8 py-3.5 text-lg font-semibold shadow-lg shadow-black/20 hover:brightness-110 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40 transition">
+                  Continuar sin conexión como {perfilLocal.nombre.split(' ')[0]} <IconoFlecha className="transition-transform group-hover:translate-x-1" />
+                </button>
+              ) : (
+                <button onClick={ingresar} disabled={!online}
+                  className="group inline-flex items-center gap-2 rounded-xl bg-cumple px-8 py-3.5 text-lg font-semibold shadow-lg shadow-black/20 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40 transition">
+                  Ingresar <IconoFlecha className="transition-transform group-hover:translate-x-1" />
+                </button>
+              )}
+            </div>
             <a href="/verificar" className="mt-4 block text-sm text-andino-50 underline">Verificar un reporte de ley</a>
             <p className="mt-3 text-xs text-andino-100/70">Acceso con segundo factor. Cada consulta o cambio queda registrado a tu nombre.</p>
           </div>

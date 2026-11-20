@@ -19,7 +19,11 @@ Definido en la propuesta, §15.1 "MVP: cierre del Sprint 3":
 Línea B (adelanto del Sprint 4, D31): botón **'Ayuda'** en todas las pantallas → caso `INC-AAAA-NNNNNN` con
 contexto técnico y 'Mis casos' — HU_011 / CU_013 / RQ_020. El profesor exige que el MVP muestre las dos necesidades
 macro del cliente: el software piloto (Línea A) y la ejecución del pilotaje (Línea B). El MVP debe estar
-**desplegado con enlace web accesible** (D36) y **nunca** se presenta un video.
+**desplegado con enlace web accesible** (D38: Keycloak en el mismo origen, basta exponer el puerto web por HTTPS) y **nunca** se presenta un video.
+
+Adiciones para la presentación: **'Mi desempeño'** del Tutor Líder con **informe mensual en PDF verificable**
+(D40, D41), **reapertura sin conexión** de la PWA (D39), y del stretch F9 la confirmación del Tutor Docente, el
+tablero del Analista y los reportes de ley del Ente de Control.
 
 Transversal: bitácora de auditoría inmutable (RQ_005), cifrado de datos del estudiante (RQ_026),
 modelo de datos para millones de registros (RQ_002). Todo lo demás está **fuera de alcance** salvo que
@@ -55,8 +59,8 @@ Puertos del host (ver D10): Postgres 5433, Keycloak 8180, API 5080, web 5174.
 - `dotnet run --project tools/Sses.Seed -c Release -- --estudiantes 500000` — datos sintéticos
 - `npm --prefix frontend run dev` — front en desarrollo
 - `dotnet test backend/Sses.sln` / `npm --prefix frontend test` / `npm --prefix tests/e2e test` (Playwright; requiere el stack arriba y `npx playwright install chromium`)
-- `./scripts/reset-demo.sh` — (requiere el stack arriba) deja la base en el estado inicial del guion de demo y aplica los scripts SQL idempotentes posteriores (D32)
-- Despliegue público: `PUBLIC_WEB_URL` y `PUBLIC_KC_URL` (HTTPS) en `.env` y `docker compose up -d --build` (D36)
+- `./scripts/reset-demo.sh` — (requiere el stack arriba) deja la base en el estado inicial del guion de demo y aplica los scripts SQL idempotentes posteriores (D32), siembra el historial del tutor demo (D42) y ajusta el cliente `sses-web` (D38)
+- Despliegue público: exponer `http://localhost:5174` por HTTPS (p. ej. `cloudflared tunnel --url http://localhost:5174`); Keycloak va en el mismo origen (D38)
 
 ## Reglas de negocio que no se negocian
 

@@ -25,6 +25,7 @@ export interface ConfirmacionLocal {
 }
 export interface MiAcompLocal { mes: string; data: unknown; guardadoEn: number }
 export interface Meta { clave: string; valor: unknown }
+export interface DesempenoLocal { clave: string; data: unknown; guardadoEn: number }
 
 class SsesDb extends Dexie {
   planes!: Table<PlanLocal, string>
@@ -34,6 +35,7 @@ class SsesDb extends Dexie {
   meta!: Table<Meta, string>
   confirmaciones!: Table<ConfirmacionLocal, string>
   miAcomp!: Table<MiAcompLocal, string>
+  desempeno!: Table<DesempenoLocal, string>
   constructor() {
     super('sses-local')
     this.version(1).stores({
@@ -45,6 +47,8 @@ class SsesDb extends Dexie {
     })
     // RQ_016: cola de confirmaciones del Tutor Docente y copia local de 'Mi acompañamiento'
     this.version(2).stores({ confirmaciones: 'idempotencyKey, estado, creadoEn, hitoId', miAcomp: 'mes' })
+    // D40: última copia de 'Mi desempeño' para verla sin conexión
+    this.version(3).stores({ desempeno: 'clave' })
   }
 }
 export const db = new SsesDb()

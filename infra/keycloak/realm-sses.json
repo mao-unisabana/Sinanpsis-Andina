@@ -128,10 +128,11 @@
    "implicitFlowEnabled": false,
    "serviceAccountsEnabled": false,
    "protocol": "openid-connect",
+   "rootUrl": "${authBaseUrl}",
    "redirectUris": [
+    "/*",
     "http://localhost:5173/*",
-    "http://localhost:5174/*",
-    "${SSES_WEB_URL}/*"
+    "http://localhost:5174/*"
    ],
    "webOrigins": [
     "+"
