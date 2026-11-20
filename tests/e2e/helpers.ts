@@ -30,7 +30,7 @@ const leer = (): Record<string, number> => { try { return JSON.parse(readFileSyn
 const ultimo = { get: (k: string) => leer()[k], set: (k: string, v: number) => writeFileSync(ESTADO, JSON.stringify({ ...leer(), [k]: v })) }
 
 /** Ingresa por Keycloak (correo + contraseña + TOTP). Reintenta en la siguiente ventana si el código ya se usó. */
-export async function login(page: Page, correo: string) {
+export async function login(page: Page, correo: string, margen = -1, movil = false) {
   await page.goto('/')
   await page.getByRole('button', { name: 'Ingresar' }).click()
   await page.locator('#username').fill(correo)
@@ -39,13 +39,14 @@ export async function login(page: Page, correo: string) {
   // Keycloak rechaza reutilizar un código: se usan contadores estrictamente crecientes por usuario (lookAhead 1)
   let ahora = Math.floor(Date.now() / 30000)
   const prev = ultimo.get(correo)
-  const c = prev === undefined ? ahora : Math.max(prev + 1, ahora - 1)
+  const c = prev === undefined ? ahora : Math.max(prev + 1, ahora + margen)
   if (c > ahora + 1) { await page.waitForTimeout((c - 1) * 30000 - Date.now() + 500); ahora = Math.floor(Date.now() / 30000) }
   ultimo.set(correo, c)
   await page.locator('#otp').fill(totp(undefined, c - ahora))
   await page.locator('#kc-login').click()
   await page.waitForURL(/\/inicio/, { timeout: 15000 })
-  await expect(page.getByTestId('encabezado-nombre')).toBeVisible()
+  if (movil) await expect(page.getByTestId('encabezado-nombre')).toBeAttached()
+  else await expect(page.getByTestId('encabezado-nombre')).toBeVisible()
 }
 
 export async function tokenDe(page: Page): Promise<string> {

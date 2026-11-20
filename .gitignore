@@ -10,3 +10,4 @@ playwright-report/
 .claude/settings.local.json
 .totp-state.json
 test-results/
+tests/e2e/grabaciones/
